@@ -18,9 +18,11 @@ function readSeats(raw: FormDataEntryValue | null): number | null {
 
 // HW-А2: замените заглушку; нужный результат WorkshopId | null.
 // Для проверки через форму сначала включите список ui.workshop в месте HW-А4.
-function readWorkshop(raw: FormDataEntryValue | null): null {
-  void raw
-  return null
+function readWorkshop(raw: FormDataEntryValue | null): WorkshopId | null {
+  if (raw === 'typescript' || raw === 'build') {
+    return raw;
+  }
+  return null;
 }
 
 const app = document.querySelector<HTMLDivElement>('#app')
@@ -146,6 +148,11 @@ ui.form.addEventListener('submit', (event) => {
     ui.message.textContent = 'Введите целое число участников от 1 до 5.'
     return
   }
+  const selectedWorkshop = readWorkshop(data.get('workshop'))
+  if (selectedWorkshop === null) {
+    ui.message.textContent = 'Пожалуйста, выберите занятие из списка.'
+    return 
+  }
 
   // HW-А2: прочитайте data.get('workshop') через readWorkshop, обработайте отказ.
   // HW-А3: сравните число участников с остатком мест выбранного занятия до изменения bookings.
@@ -156,7 +163,7 @@ ui.form.addEventListener('submit', (event) => {
     seats,
     status: 'new',
     source: 'web',
-    // HW-А1: добавьте проверенное занятие.
+    workshop: selectedWorkshop,
   }
   bookings.push(booking)
   render(bookings)
