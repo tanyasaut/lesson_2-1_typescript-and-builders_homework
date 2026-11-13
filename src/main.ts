@@ -5,26 +5,31 @@ import { TYPESCRIPT_CAPACITY, BUILD_CAPACITY } from './data/capacities'
 import { countSeats } from './lib/count-seats'
 import { getRemainingSeats } from './lib/availability'
 import logoUrl from './assets/workshops.svg'
+import type { Result } from './models/result'
 // HW-Б1: подключите расчёты из ./lib/availability.
 // HW-Б2: импортируйте ./assets/workshops.svg как URL.
 
 const bookings: Array<Booking> = [...initialBookings]
 
 // Проверка из практики уже работает. В базе менять её не требуется.
-function readSeats(raw: FormDataEntryValue | null): number | null {
-  if (typeof raw !== 'string' || raw.trim() === '') return null
-  const seats = Number(raw)
-  if (!Number.isInteger(seats) || seats < 1 || seats > 5) return null
-  return seats
+function readSeats(raw: FormDataEntryValue | null): Result<number> {
+  if (typeof raw !== 'string' || raw.trim() === '') {
+    return { ok: false, error: 'Укажите количество участников.' };
+  }
+  const seats = Number(raw);
+  if (!Number.isInteger(seats) || seats < 1 || seats > 5) {
+    return { ok: false, error: 'Введите целое число участников от 1 до 5.' };
+  }
+  return { ok: true, value: seats };
 }
 
 // HW-А2: замените заглушку; нужный результат WorkshopId | null.
 // Для проверки через форму сначала включите список ui.workshop в месте HW-А4.
-function readWorkshop(raw: FormDataEntryValue | null): WorkshopId | null {
+function readWorkshop(raw: FormDataEntryValue | null): Result<WorkshopId> {
   if (raw === 'typescript' || raw === 'build') {
-    return raw;
+    return { ok: true, value: raw };
   }
-  return null;
+  return { ok: false, error: 'Пожалуйста, выберите занятие из списка.' };
 }
 
 const app = document.querySelector<HTMLDivElement>('#app')
@@ -151,16 +156,20 @@ ui.form.addEventListener('submit', (event) => {
     return
   }
 
-  const seats = readSeats(data.get('seats'))
-  if (seats === null) {
-    ui.message.textContent = 'Введите целое число участников от 1 до 5.'
-    return
+   const seatsResult = readSeats(data.get('seats'));
+  if (!seatsResult.ok) {
+    ui.message.textContent = seatsResult.error;
+    return;
   }
-  const selectedWorkshop = readWorkshop(data.get('workshop'))
-  if (selectedWorkshop === null) {
-    ui.message.textContent = 'Пожалуйста, выберите занятие из списка.'
-    return 
+  const seats = seatsResult.value;
+
+   const workshopResult = readWorkshop(data.get('workshop'));
+  if (!workshopResult.ok) {
+    ui.message.textContent = workshopResult.error;
+    return;
   }
+  const selectedWorkshop = workshopResult.value;
+
   const remaining = getRemainingSeats(bookings, selectedWorkshop)
   if (seats > remaining) {
     ui.message.textContent = `Недостаточно мест. Свободно: ${remaining}.`
